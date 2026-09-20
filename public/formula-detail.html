@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รายละเอียดสูตร - Formula Review</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5e6d3 0%, #e8d4c0 100%);
+      min-height: 100vh;
+      color: #5c4a3d;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: #fffaf5;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(92, 74, 61, 0.1);
+    }
+
+    .breadcrumb {
+      font-size: 13px;
+      color: #a0826d;
+      margin-bottom: 24px;
+    }
+
+    .breadcrumb a {
+      color: #d4a574;
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+      border-bottom: 1px solid #e8d4c0;
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #5c4a3d;
+      margin-bottom: 8px;
+    }
+
+    .header-info {
+      flex: 1;
+    }
+
+    .header-meta {
+      font-size: 13px;
+      color: #a0826d;
+      margin-top: 8px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-left: 12px;
+    }
+
+    .badge-draft {
+      background: #ffe8d1;
+      color: #8b6a4f;
+    }
+
+    .badge-submitted {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .badge-approved {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-rejected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    /* Content sections */
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #5c4a3d;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #e8d4c0;
+      padding-bottom: 8px;
+    }
+
+    .info-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #5c4a3d;
+      font-size: 13px;
+    }
+
+    .info-value {
+      color: #5c4a3d;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .brief-box {
+      background: #f5e6d3;
+      padding: 12px;
+      border-radius: 4px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    /* Ingredients table */
+    .ingredients-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .ingredients-table thead {
+      background: #f5e6d3;
+    }
+
+    .ingredients-table th {
+      padding: 10px;
+      text-align: left;
+      font-weight: 600;
+      color: #5c4a3d;
+      border-bottom: 1px solid #e8d4c0;
+    }
+
+    .ingredients-table td {
+      padding: 10px;
+      border-bottom: 1px solid #f0e8dd;
+    }
+
+    .ingredients-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* AI Section */
+    .ai-section {
+      background: #f0e8dd;
+      padding: 16px;
+      border-radius: 4px;
+      border-left: 4px solid #d4a574;
+      margin-bottom: 32px;
+    }
+
+    .ai-button-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .btn-ai {
+      background: #8b7355;
+      color: #fffaf5;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn-ai:hover {
+      background: #7a6349;
+    }
+
+    .btn-ai:disabled {
+      background: #a0826d;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    #aiIfraBox, #aiSummaryBox {
+      background: #fffaf5;
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #5c4a3d;
+      min-height: 40px;
+      display: none;
+    }
+
+    #aiIfraBox.visible, #aiSummaryBox.visible {
+      display: block;
+    }
+
+    #aiIfraBox.loading, #aiSummaryBox.loading {
+      color: #a0826d;
+      font-style: italic;
+    }
+
+    #aiIfraBox.error, #aiSummaryBox.error {
+      color: #c9365f;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e8d4c0;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-submit, .btn-approve {
+      background: #d4a574;
+      color: #fffaf5;
+    }
+
+    .btn-submit:hover, .btn-approve:hover {
+      background: #c9965f;
+    }
+
+    .btn-reject, .btn-delete {
+      background: #c9365f;
+      color: #fffaf5;
+    }
+
+    .btn-reject:hover, .btn-delete:hover {
+      background: #b01d4f;
+    }
+
+    .btn-back {
+      background: transparent;
+      color: #a0826d;
+      border: 1px solid #d4c4b0;
+    }
+
+    .btn-back:hover {
+      background: #f5e6d3;
+    }
+
+    .btn-hidden {
+      display: none;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #a0826d;
+      font-size: 14px;
+    }
+
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      border-left: 4px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="index.html">← กลับไปยังรายการสูตร</a>
+    </div>
+
+    <div id="contentArea">
+      <div class="loading">กำลังโหลด...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { doc, getDoc, getDocs, collection, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    let currentUser = null;
+    let userRole = null;
+    let formula = null;
+    let ingredients = [];
+
+    // Helper function to escape HTML
+    function escHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Get formula ID from URL
+    function getFormulaId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("id");
+    }
+
+    // Auth state listener
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      currentUser = user;
+
+      // Get user role
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          userRole = userDoc.data().role;
+        }
+      } catch (error) {
+        showError("ไม่สามารถโหลดข้อมูลผู้ใช้: " + error.message);
+        return;
+      }
+
+      // Load formula
+      const formulaId = getFormulaId();
+      if (!formulaId) {
+        showError("ไม่พบ ID สูตร");
+        return;
+      }
+
+      await loadFormula(formulaId);
+    });
+
+    async function loadFormula(formulaId) {
+      const contentArea = document.getElementById("contentArea");
+
+      try {
+        // Get formula document
+        const formulaDoc = await getDoc(doc(db, "formulas", formulaId));
+
+        if (!formulaDoc.exists()) {
+          showError("ไม่พบสูตรนี้");
+          return;
+        }
+
+        formula = formulaDoc.data();
+        formula.id = formulaId;
+
+        // Check permissions
+        const canView = userRole === "qc_reviewer" || formula.perfumerId === currentUser.uid;
+        if (!canView) {
+          showError("คุณไม่มีสิทธิ์เข้าถึงสูตรนี้");
+          return;
+        }
+
+        // Get ingredients
+        const ingredientsSnapshot = await getDocs(collection(db, "formulas", formulaId, "ingredients"));
+        ingredients = [];
+        ingredientsSnapshot.forEach((doc) => {
+          ingredients.push(doc.data());
+        });
+
+        // Render page
+        renderFormula();
+      } catch (error) {
+        showError("ไม่สามารถโหลดสูตร: " + error.message);
+      }
+    }
+
+    function renderFormula() {
+      const contentArea = document.getElementById("contentArea");
+      const createdDate = formula.createdAt
+        ? new Date(formula.createdAt.toDate()).toLocaleDateString("th-TH")
+        : "—";
+
+      let html = `
+        <div class="header">
+          <div class="header-info">
+            <h1>${escHtml(formula.name)}</h1>
+            <div class="header-meta">
+              สร้างโดย <strong>${escHtml(formula.perfumerName)}</strong>
+              <br>
+              ${createdDate}
+              ${getStatusBadge(formula.status)}
+            </div>
+          </div>
+        </div>
+
+        <!-- Basic Info Section -->
+        <div class="section">
+          <div class="section-title">ข้อมูลพื้นฐาน</div>
+          <div class="info-row">
+            <div class="info-label">ประเภท:</div>
+            <div class="info-value">${escHtml(formula.fragranceTypeName)}</div>
+          </div>
+        </div>
+
+        <!-- Brief Section -->
+        <div class="section">
+          <div class="section-title">โจทย์กลิ่น</div>
+          <div class="brief-box">${escHtml(formula.brief)}</div>
+        </div>
+
+        <!-- Ingredients Section -->
+        <div class="section">
+          <div class="section-title">วัตถุดิบ (${ingredients.length})</div>
+          <table class="ingredients-table">
+            <thead>
+              <tr>
+                <th>ชื่อวัตถุดิบ</th>
+                <th style="text-align: right;">เปอร์เซ็นต์ (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      ingredients.forEach((ing) => {
+        html += `
+              <tr>
+                <td>${escHtml(ing.materialName)}</td>
+                <td style="text-align: right;">${ing.percent}</td>
+              </tr>
+        `;
+      });
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      // AI IFRA Note Section
+      if (formula.aiIfraNote) {
+        html += `
+          <div class="section">
+            <div class="section-title">ข้อสังเกต IFRA จาก AI</div>
+            <div class="ai-section">
+              <div id="aiIfraBox" class="visible">${escHtml(formula.aiIfraNote)}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // AI Summary Section (QC only, submitted status)
+      if (userRole === "qc_reviewer" && formula.status === "submitted") {
+        html += `
+          <div class="ai-section">
+            <div class="ai-button-group">
+              <button type="button" class="btn-ai" id="aiSummaryBtn">🤖 ให้ AI สรุปสูตรนี้ให้ QC อ่าน</button>
+            </div>
+            <!-- ปุ่ม AI: formula-ai-feature จะมาต่อ logic ตรงนี้ -->
+            <div id="aiSummaryBox" class="${formula.aiSuggestion ? 'visible' : ''}">${formula.aiSuggestion ? '🤖 <strong>สรุปโดย AI — ใช้ประกอบการตัดสินใจเท่านั้น:</strong><br>' + escHtml(formula.aiSuggestion) : ''}</div>
+          </div>
+        `;
+      } else if (formula.aiSuggestion && userRole === "qc_reviewer") {
+        html += `
+          <div class="section">
+            <div class="section-title">สรุปสูตรจาก AI</div>
+            <div class="ai-section">
+              <div id="aiSummaryBox" class="visible">${escHtml(formula.aiSuggestion)}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Action Buttons
+      html += `<div class="action-buttons">`;
+
+      // Submit button - owner, draft only
+      if (formula.perfumerId === currentUser.uid && formula.status === "draft") {
+        html += `<button class="btn-submit" id="submitBtn">ส่งตรวจ</button>`;
+      }
+
+      // Approve button - QC, submitted only
+      if (userRole === "qc_reviewer" && formula.status === "submitted") {
+        html += `<button class="btn-approve" id="approveBtn">อนุมัติ</button>`;
+      }
+
+      // Reject button - QC, submitted only
+      if (userRole === "qc_reviewer" && formula.status === "submitted") {
+        html += `<button class="btn-reject" id="rejectBtn">ตีกลับ</button>`;
+      }
+
+      // Delete button - owner, draft only
+      if (formula.perfumerId === currentUser.uid && formula.status === "draft") {
+        html += `<button class="btn-delete" id="deleteBtn">ลบ</button>`;
+      }
+
+      html += `<button class="btn-back" id="backBtn">กลับ</button>`;
+      html += `</div>`;
+
+      contentArea.innerHTML = html;
+
+      // Attach event listeners
+      const submitBtn = document.getElementById("submitBtn");
+      const approveBtn = document.getElementById("approveBtn");
+      const rejectBtn = document.getElementById("rejectBtn");
+      const deleteBtn = document.getElementById("deleteBtn");
+      const backBtn = document.getElementById("backBtn");
+      const aiSummaryBtn = document.getElementById("aiSummaryBtn");
+
+      if (submitBtn) {
+        submitBtn.addEventListener("click", () => updateStatus("submitted"));
+      }
+
+      if (approveBtn) {
+        approveBtn.addEventListener("click", () => updateStatus("approved"));
+      }
+
+      if (rejectBtn) {
+        rejectBtn.addEventListener("click", () => updateStatus("rejected"));
+      }
+
+      if (deleteBtn) {
+        deleteBtn.addEventListener("click", deleteFormula);
+      }
+
+      if (backBtn) {
+        backBtn.addEventListener("click", () => {
+          window.location.href = "index.html";
+        });
+      }
+
+      // ปุ่ม AI สรุปสูตรให้ QC อ่าน (spec.md หัวข้อ 5)
+      // 🚫 ปุ่มนี้เขียนได้เฉพาะฟิลด์ aiSuggestion เท่านั้น ไม่แตะ status เลย
+      //    การอนุมัติ/ตีกลับเป็นการตัดสินใจของมนุษย์ คนละปุ่มกันคนละฟังก์ชันกัน
+      if (aiSummaryBtn) {
+        aiSummaryBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          const box = document.getElementById("aiSummaryBox");
+          const originalLabel = aiSummaryBtn.textContent;
+
+          aiSummaryBtn.disabled = true;
+          aiSummaryBtn.textContent = "กำลังให้ AI สรุป...";
+          box.className = "loading visible";
+          box.textContent = "กำลังให้ AI สรุป...";
+
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 15000);
+
+          const inputText =
+            "ชื่อสูตร: " + formula.name + "\n" +
+            "ประเภทน้ำหอม: " + formula.fragranceTypeName + "\n" +
+            "โจทย์ (brief): " + formula.brief + "\n" +
+            "วัตถุดิบ: " + JSON.stringify(ingredients);
+
+          try {
+            // dynamic import เท่านั้น — ถ้าไฟล์คีย์หาย ต้องพังแค่ปุ่มนี้ ไม่ใช่ทั้งหน้า
+            const { getOpenRouterKey, forgetOpenRouterKey } = await import("./ai-key.js");
+            const apiKey = await getOpenRouterKey();
+            if (!apiKey) throw new Error("ยังไม่ได้ใส่คีย์ AI — กดปุ่มอีกครั้งแล้ววางคีย์เพื่อใช้ฟีเจอร์นี้");
+
+            const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+              method: "POST",
+              signal: controller.signal,
+              headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-lite",
+                messages: [
+                  { role: "system", content: "คุณช่วยสรุปสูตรน้ำหอมให้ QC Reviewer อ่านก่อนตัดสินใจอนุมัติ/ตีกลับ ตอบเป็นภาษาไทยสั้น ๆ 2-3 ประโยค สรุปองค์ประกอบ/แนวกลิ่นจากวัตถุดิบ และถ้ามีวัตถุดิบที่ควรระวังตาม IFRA ให้ตั้งข้อสังเกตไว้ด้วย ห้ามฟันธงว่าควรอนุมัติหรือตีกลับ ห้ามอ้างตัวเลขขีดจำกัดที่แน่นอนราวกับเป็นผลตรวจทางการ" },
+                  { role: "user", content: inputText },
+                ],
+              }),
+            });
+
+            const data = await res.json();
+            // คีย์ผิด/หมดอายุ — ลืมคีย์ที่เก็บไว้ในแท็บนี้ เพื่อให้ถามใหม่ในครั้งถัดไป
+            if (res.status === 401 || res.status === 403) forgetOpenRouterKey();
+            if (!res.ok) throw new Error((data.error && data.error.message) || "เรียก API ไม่สำเร็จ");
+
+            const summary = ((data.choices && data.choices[0] && data.choices[0].message.content) || "").trim();
+            if (!summary) throw new Error("AI ไม่ได้ตอบข้อความกลับมา");
+
+            // เขียนเฉพาะ aiSuggestion + เพิ่มประวัติลง aiLog (firestore.rules ล็อกไว้ให้แตะได้แค่นี้)
+            await updateDoc(doc(db, "formulas", formula.id), { aiSuggestion: summary });
+            await addDoc(collection(db, "formulas", formula.id, "aiLog"), {
+              input: inputText,
+              output: summary,
+              createdAt: serverTimestamp(),
+            });
+
+            formula.aiSuggestion = summary;
+            box.className = "visible";
+            box.innerHTML = "🤖 <strong>สรุปโดย AI — ใช้ประกอบการตัดสินใจเท่านั้น:</strong><br>" + escHtml(summary);
+          } catch (err) {
+            box.className = "error visible";
+            box.textContent = err.name === "AbortError"
+              ? "⌛ รอ AI นานเกิน 15 วินาที — ยังกดอนุมัติ/ตีกลับได้ตามปกติ"
+              : "❌ ให้ AI สรุปไม่สำเร็จ: " + err.message + " — ยังกดอนุมัติ/ตีกลับได้ตามปกติ";
+          } finally {
+            clearTimeout(timer);
+            aiSummaryBtn.disabled = false;
+            aiSummaryBtn.textContent = originalLabel;
+          }
+        });
+      }
+    }
+
+    function getStatusBadge(status) {
+      const statusMap = {
+        "draft": { text: "ร่าง", class: "badge-draft" },
+        "submitted": { text: "ส่งตรวจแล้ว", class: "badge-submitted" },
+        "approved": { text: "อนุมัติแล้ว", class: "badge-approved" },
+        "rejected": { text: "ตีกลับ", class: "badge-rejected" }
+      };
+
+      const s = statusMap[status] || { text: status, class: "badge-draft" };
+      return `<span class="status-badge ${s.class}">${s.text}</span>`;
+    }
+
+    async function updateStatus(newStatus) {
+      try {
+        await updateDoc(doc(db, "formulas", formula.id), {
+          status: newStatus
+        });
+
+        formula.status = newStatus;
+        renderFormula();
+        alert("อัปเดตสถานะสำเร็จ");
+      } catch (error) {
+        alert("เกิดข้อผิดพลาด: " + error.message);
+      }
+    }
+
+    async function deleteFormula() {
+      if (!confirm("คุณแน่ใจว่าต้องการลบสูตรนี้? การกระทำนี้ไม่สามารถเลิกทำได้")) {
+        return;
+      }
+
+      try {
+        // Delete ingredients sub-collection first
+        const ingredientsSnapshot = await getDocs(collection(db, "formulas", formula.id, "ingredients"));
+        const batch = writeBatch(db);
+
+        ingredientsSnapshot.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        // Delete the formula document
+        batch.delete(doc(db, "formulas", formula.id));
+
+        await batch.commit();
+
+        alert("ลบสูตรสำเร็จ");
+        window.location.href = "index.html";
+      } catch (error) {
+        alert("เกิดข้อผิดพลาด: " + error.message);
+      }
+    }
+
+    function showError(message) {
+      const contentArea = document.getElementById("contentArea");
+      contentArea.innerHTML = `
+        <div class="error-message">${escHtml(message)}</div>
+        <button class="btn-back" onclick="window.location.href='index.html'">กลับไปยังรายการสูตร</button>
+      `;
+    }
+  </script>
+</body>
+</html>

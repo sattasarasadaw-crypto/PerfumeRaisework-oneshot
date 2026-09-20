@@ -1,0 +1,20 @@
+{
+  "name": "formula-review",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Formula Review (Module 2 Sprint 1) - Firestore data + security rules + seed script",
+  "scripts": {
+    "seed": "node seed.js",
+    "test": "node tests/run.mjs",
+    "test:security": "node tests/run.mjs security.spec.js",
+    "test:ui": "playwright test --ui",
+    "serve": "node tests/serve.mjs"
+  },
+  "dependencies": {
+    "firebase": "^10.14.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}

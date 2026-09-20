@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สมัครสมาชิก - Formula Review</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5e6d3 0%, #e8d4c0 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #5c4a3d;
+    }
+
+    .container {
+      background: #fffaf5;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(92, 74, 61, 0.1);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      text-align: center;
+      color: #5c4a3d;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: #a0826d;
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #5c4a3d;
+      font-size: 14px;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d4c4b0;
+      border-radius: 4px;
+      font-size: 14px;
+      background: #fefdfb;
+      color: #5c4a3d;
+      transition: border-color 0.2s;
+    }
+
+    input[type="email"]:focus,
+    input[type="password"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #c9a876;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #d4a574;
+      color: #fffaf5;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #c9965f;
+    }
+
+    button:active {
+      background: #bf8a4f;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .login-link a {
+      color: #d4a574;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+
+    .info-box {
+      background: #f0e8dd;
+      border-left: 4px solid #d4a574;
+      padding: 12px;
+      margin-top: 24px;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #5c4a3d;
+    }
+
+    .error {
+      color: #c9365f;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .loading {
+      display: none;
+      color: #a0826d;
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>สมัครสมาชิก</h1>
+    <p class="subtitle">Formula Review System</p>
+
+    <form id="signupForm">
+      <div class="form-group">
+        <label for="email">อีเมล</label>
+        <input type="email" id="email" name="email" required>
+        <div class="error" id="emailError"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="displayName">ชื่อเต็ม</label>
+        <input type="text" id="displayName" name="displayName" required>
+        <div class="error" id="displayNameError"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">รหัสผ่าน</label>
+        <input type="password" id="password" name="password" required>
+        <div class="error" id="passwordError"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">ยืนยันรหัสผ่าน</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required>
+        <div class="error" id="confirmError"></div>
+      </div>
+
+      <button type="submit" id="submitBtn">สมัครสมาชิก</button>
+      <div class="loading" id="loading">กำลังสมัคร...</div>
+
+      <div class="info-box">
+        <strong>หมายเหตุ:</strong> บัญชีใหม่ได้รับบทบาท <strong>นักปรุงน้ำหอม (Perfumer)</strong> โดยอัตโนมัติ
+        <br><br>
+        เพื่อเปลี่ยนเป็น <strong>ผู้ตรวจสอบ QC</strong> ให้ติดต่อผู้ดูแลระบบ
+      </div>
+    </form>
+
+    <div class="login-link">
+      มีบัญชีอยู่แล้ว? <a href="login.html">เข้าสู่ระบบ</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const form = document.getElementById("signupForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const loading = document.getElementById("loading");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      // Clear previous errors
+      document.querySelectorAll(".error").forEach(el => el.textContent = "");
+
+      const email = document.getElementById("email").value.trim();
+      const displayName = document.getElementById("displayName").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      // Validation
+      let hasError = false;
+
+      if (password.length < 6) {
+        document.getElementById("passwordError").textContent = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+        hasError = true;
+      }
+
+      if (password !== confirmPassword) {
+        document.getElementById("confirmError").textContent = "รหัสผ่านไม่ตรงกัน";
+        hasError = true;
+      }
+
+      if (!displayName) {
+        document.getElementById("displayNameError").textContent = "โปรดกรอกชื่อเต็ม";
+        hasError = true;
+      }
+
+      if (hasError) return;
+
+      submitBtn.disabled = true;
+      loading.style.display = "block";
+
+      try {
+        // Create auth account
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+
+        // Write to Firestore users collection with role: "perfumer"
+        await setDoc(doc(db, "users", uid), {
+          email: email,
+          displayName: displayName,
+          role: "perfumer",
+          createdAt: serverTimestamp()
+        });
+
+        // Redirect to index page
+        window.location.href = "index.html";
+      } catch (error) {
+        loading.style.display = "none";
+        submitBtn.disabled = false;
+
+        let errorMsg = "เกิดข้อผิดพลาด";
+        if (error.code === "auth/email-already-in-use") {
+          errorMsg = "อีเมลนี้ลงทะเบียนแล้ว";
+          document.getElementById("emailError").textContent = errorMsg;
+        } else if (error.code === "auth/invalid-email") {
+          errorMsg = "อีเมลไม่ถูกต้อง";
+          document.getElementById("emailError").textContent = errorMsg;
+        } else {
+          alert(errorMsg + ": " + error.message);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

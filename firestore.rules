@@ -1,0 +1,346 @@
+rules_version = '2';
+
+// =============================================================================
+// firestore.rules — Formula Review (Module 2 Sprint 1)
+//
+// แหล่งความจริง: spec.md หัวข้อ 2 (บทบาท) + หัวข้อ 4 (โครงสร้างข้อมูล) และ ACL.md
+// ไฟล์นี้คือจุดเดียวที่บังคับสิทธิ์จริง — UI ซ่อนปุ่มได้ แต่กันข้อมูลรั่วไม่ได้
+//
+// หลักการ: ปฏิเสธก่อนเสมอ (default deny) แล้วค่อยเปิดทีละเคสเท่าที่ ACL.md อนุญาต
+//
+//   1. ทุก read/write ต้องล็อกอิน — ไม่มี path ไหนเปิดให้ผู้ไม่ล็อกอิน
+//   2. Perfumer เห็น/แก้/ลบ ได้เฉพาะสูตรที่ perfumerId == uid ของตัวเอง
+//   3. Perfumer แก้/ลบได้เฉพาะตอน status == 'draft'
+//   4. QC เปลี่ยนได้เฉพาะฟิลด์ status (hasOnly) ของสูตรที่ submitted -> approved/rejected
+//   5. ห้ามใครเปลี่ยน role ของตัวเอง (กัน Perfumer โปรโมทตัวเองเป็น QC)
+//   6. fragranceTypes เขียนจาก client ไม่ได้เลย
+//   7. ingredients / aiLog สืบสิทธิ์จากเอกสารแม่ formulas/{id} เสมอ
+//
+// ค่าที่เป็นไปได้ทั้งหมด (spec.md หัวข้อ 4 — ห้ามมีค่าอื่น):
+//   formulas.status : draft | submitted | approved | rejected
+//   users.role      : perfumer | qc_reviewer
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // Helper: ตัวตนและบทบาท
+    // ------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    // ต้องกันด้วย exists() ก่อนเสมอ — ถ้าโปรไฟล์ยังไม่ถูกสร้าง get() จะคืน null
+    // แล้ว null.data.role จะ error ทำให้ทั้ง expression ล้มทั้งก้อน (รวมฝั่ง || ที่ควรผ่าน)
+    // การกันด้วย exists() ทำให้ได้ false สะอาด ๆ แทน error
+    function hasProfile() {
+      return isSignedIn() && exists(userPath());
+    }
+
+    function myRole() {
+      return get(userPath()).data.role;
+    }
+
+    function isPerfumer() {
+      return hasProfile() && myRole() == 'perfumer';
+    }
+
+    function isQcReviewer() {
+      return hasProfile() && myRole() == 'qc_reviewer';
+    }
+
+    // ------------------------------------------------------------------
+    // Helper: เอกสารแม่ formulas/{id} (ใช้โดย sub-collection)
+    // ------------------------------------------------------------------
+
+    function formulaPath(formulaId) {
+      return /databases/$(database)/documents/formulas/$(formulaId);
+    }
+
+    // สถานะ "ก่อน" เขียน — ใช้ตอน read / delete
+    // ถ้าเอกสารแม่ไม่มีจริง get() คืน null -> .data error -> ปฏิเสธ (fail closed)
+    function parentFormula(formulaId) {
+      return get(formulaPath(formulaId)).data;
+    }
+
+    // สถานะ "หลัง" เขียน — ใช้ตอน create เท่านั้น
+    // รองรับกรณี UI ใช้ writeBatch สร้าง formula + ingredients พร้อมกันในชุดเดียว
+    // (ตอนนั้นเอกสารแม่ยังไม่ commit get() จึงยังไม่เห็น แต่ getAfter() เห็น)
+    // ไม่ได้เปิดช่องใหม่ เพราะยังบังคับ perfumerId == uid และ status == 'draft' อยู่ดี
+    function parentFormulaAfter(formulaId) {
+      return getAfter(formulaPath(formulaId)).data;
+    }
+
+    function ownsParentFormula(formulaId) {
+      return isSignedIn() && parentFormula(formulaId).perfumerId == request.auth.uid;
+    }
+
+    function ownsParentDraft(formulaId) {
+      return ownsParentFormula(formulaId) && parentFormula(formulaId).status == 'draft';
+    }
+
+    function ownsParentDraftAfter(formulaId) {
+      return isSignedIn()
+             && parentFormulaAfter(formulaId).perfumerId == request.auth.uid
+             && parentFormulaAfter(formulaId).status == 'draft';
+    }
+
+    // QC เห็นทุกสูตร (ACL.md) ส่วน Perfumer เห็นเฉพาะของตัวเอง
+    function canSeeFormula(formulaId) {
+      return isQcReviewer() || ownsParentFormula(formulaId);
+    }
+
+    // ------------------------------------------------------------------
+    // Helper: ฟิลด์ของ formulas (ตาม spec.md หัวข้อ 4 เป๊ะ ๆ ห้ามมีฟิลด์นอกรายการ)
+    // ------------------------------------------------------------------
+
+    function formulaAllFields() {
+      return ['name', 'perfumerId', 'perfumerName', 'fragranceTypeId',
+              'fragranceTypeName', 'brief', 'status', 'aiIfraNote',
+              'aiSuggestion', 'createdAt'];
+    }
+
+    function formulaRequiredFields() {
+      return ['name', 'perfumerId', 'perfumerName', 'fragranceTypeId',
+              'fragranceTypeName', 'brief', 'status', 'createdAt'];
+    }
+
+    // ฟิลด์ที่เจ้าของแก้ได้ตอนยังเป็น draft — สังเกตว่าไม่มี perfumerId และ createdAt
+    // (ACL.md: ห้ามเปลี่ยน perfumerId คือห้ามโอนความเป็นเจ้าของสูตรให้บัญชีอื่น)
+    function ownerEditableFields() {
+      return ['name', 'fragranceTypeId', 'fragranceTypeName', 'brief',
+              'status', 'aiIfraNote', 'aiSuggestion'];
+    }
+
+    // คีย์ที่ "ถูกแตะ" จริงในการ update ครั้งนี้ (เพิ่ม / ลบ / แก้ค่า)
+    // ต้องใช้ diff().affectedKeys() ไม่ใช่ request.resource.data.keys()
+    // เพราะตอน update นั้น request.resource.data คือเอกสารเต็มหลังเขียน
+    // ถ้าเผลอใช้ keys().hasOnly(['status']) จะกลายเป็นบังคับให้เอกสารเหลือฟิลด์เดียว
+    // ซึ่งทั้งผิดเจตนาและเปิดช่องให้เขียนทับเอกสารทิ้งทั้งใบ
+    function touchedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function newFormulaIsValid() {
+      return request.resource.data.keys().hasAll(formulaRequiredFields())
+             && request.resource.data.keys().hasOnly(formulaAllFields())
+             && request.resource.data.name is string
+             && request.resource.data.name.size() > 0
+             && request.resource.data.name.size() <= 200
+             // กันสร้างสูตรในนามบัญชีอื่น — ฟิลด์นี้คือหัวใจของการกันข้อมูลรั่วข้ามบัญชี
+             && request.resource.data.perfumerId == request.auth.uid
+             && request.resource.data.perfumerName is string
+             && request.resource.data.fragranceTypeId is string
+             && request.resource.data.fragranceTypeId.size() > 0
+             && request.resource.data.fragranceTypeName is string
+             && request.resource.data.brief is string
+             && request.resource.data.brief.size() > 0
+             // สูตรใหม่เกิดเป็น draft เสมอ — ห้ามลัดคิวไป submitted/approved/rejected
+             && request.resource.data.status == 'draft'
+             && request.resource.data.createdAt is timestamp
+             && (!request.resource.data.keys().hasAny(['aiIfraNote'])
+                 || request.resource.data.aiIfraNote is string)
+             && (!request.resource.data.keys().hasAny(['aiSuggestion'])
+                 || request.resource.data.aiSuggestion is string);
+    }
+
+    // ==================================================================
+    // users/{uid} — โปรไฟล์ + บทบาท
+    // spec.md หัวข้อ 4: email, displayName, role, createdAt
+    // ==================================================================
+    match /users/{uid} {
+
+      // อ่านได้เฉพาะโปรไฟล์ของตัวเอง — ทุกหน้าจออ่านแค่ role ของตัวเองพอ
+      // ส่วนชื่อเจ้าของสูตร QC อ่านจาก formulas.perfumerName ที่ denormalize ไว้แล้ว
+      allow get: if isSignedIn() && request.auth.uid == uid;
+
+      // ไม่มีหน้าจอไหนต้องไล่รายชื่อผู้ใช้ (spec.md หัวข้อ 6: ไม่มีหน้าแอดมิน)
+      // ปิด list เพื่อกันกวาดอีเมลผู้ใช้ทั้งระบบ
+      allow list: if false;
+
+      // สมัครสมาชิก: เขียนได้เฉพาะเอกสารของ uid ตัวเอง และ role ถูกตรึงเป็น 'perfumer'
+      // ถ้าไม่ตรึงตรงนี้ ใครก็ setDoc(users/{ตัวเอง}, {role:'qc_reviewer'}) ผ่าน SDK
+      // ได้ตั้งแต่วินาทีแรกที่สมัคร แล้วเดินไปกดอนุมัติสูตรของคนอื่นได้ทันที
+      allow create: if isSignedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasAll(['email', 'displayName', 'role', 'createdAt'])
+                    && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'createdAt'])
+                    && request.resource.data.role == 'perfumer'
+                    && request.resource.data.email is string
+                    && request.resource.data.displayName is string
+                    && request.resource.data.createdAt is timestamp;
+
+      // กติกาข้อ 5: ห้ามเปลี่ยน role ของตัวเอง — ล็อกสองชั้น
+      //   (ก) role ต้องเท่าเดิมเป๊ะ
+      //   (ข) คีย์ที่แตะได้มีแค่ displayName / email เท่านั้น
+      // การขึ้นเป็น qc_reviewer ทำได้ทางเดียวคือผู้ดูแลแก้ใน Firebase Console (ACL.md)
+      allow update: if isSignedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.role == resource.data.role
+                    && touchedKeys().hasOnly(['displayName', 'email'])
+                    && request.resource.data.displayName is string
+                    && request.resource.data.email is string;
+
+      // ไม่มี use case ลบผู้ใช้จากฝั่ง client
+      allow delete: if false;
+    }
+
+    // ==================================================================
+    // fragranceTypes/{typeId} — lookup (EDP / EDT / Extrait)
+    // กติกาข้อ 6: client เขียนไม่ได้เลย seed ผ่านสคริปต์/Console เท่านั้น
+    // spec.md หัวข้อ 6 ระบุชัดว่าไม่มีหน้าจอจัดการ fragranceTypes
+    // ==================================================================
+    match /fragranceTypes/{typeId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ==================================================================
+    // formulas/{formulaId} — collection หลัก
+    // ==================================================================
+    match /formulas/{formulaId} {
+
+      function isOwner() {
+        return isSignedIn() && resource.data.perfumerId == request.auth.uid;
+      }
+
+      // อ่าน: QC เห็นทุกสูตรทุกสถานะ · Perfumer เห็นเฉพาะของตัวเอง
+      //
+      // นี่คือกฎที่เทสต์ข้อ 5 วัด (บัญชีที่สองเปิดสูตรของบัญชีแรกไม่ได้)
+      //   - get  : เทียบ resource.data.perfumerId ของเอกสารนั้นตรง ๆ
+      //   - list : Firestore พิสูจน์จาก "เงื่อนไขของ query" ไม่ใช่ค่าจริงในเอกสาร
+      //            -> หน้า index.html ฝั่ง Perfumer ต้อง query
+      //               where('perfumerId','==',uid) เสมอ ไม่งั้นทั้ง query ถูกปฏิเสธ
+      //            -> ฝั่ง QC เงื่อนไข isQcReviewer() เป็นจริงโดยไม่พึ่ง resource
+      //               จึง list ได้ทั้ง collection
+      allow read: if isQcReviewer() || isOwner();
+
+      // สร้าง: เฉพาะ Perfumer (ACL.md: QC สร้าง/ลบสูตรหรือวัตถุดิบไม่ได้เลย)
+      allow create: if isPerfumer() && newFormulaIsValid();
+
+      // แก้ไข: มี 3 เคสเท่านั้น และแต่ละเคสถูกล็อกด้วย hasOnly คนละชุด
+      // จึงเอามารวมร่างกันในคำสั่งเขียนเดียวไม่ได้
+      allow update: if
+        // (ก) เจ้าของแก้ร่างของตัวเอง / กดปุ่ม "ส่งตรวจ"  draft -> submitted
+        //     กติกาข้อ 2+3: ต้องเป็นเจ้าของ และต้องยังเป็น draft เท่านั้น
+        //     หมดสิทธิ์แก้ทันทีที่สูตรเป็น submitted/approved/rejected แล้ว
+        (
+          isOwner()
+          && resource.data.status == 'draft'
+          && touchedKeys().hasOnly(ownerEditableFields())
+          && request.resource.data.perfumerId == resource.data.perfumerId
+          && request.resource.data.createdAt == resource.data.createdAt
+          // เจ้าของดันสถานะได้แค่ draft -> submitted เท่านั้น
+          // ห้ามข้ามไป approved/rejected เอง (ACL.md) และห้ามค่าอื่นนอก 4 ค่า
+          && request.resource.data.status in ['draft', 'submitted']
+        )
+        ||
+        // (ข) QC กดอนุมัติ/ตีกลับ — กติกาข้อ 4
+        //     เปลี่ยนได้เฉพาะฟิลด์ status เท่านั้น (hasOnly)
+        //     ชื่อสูตร / brief / วัตถุดิบ แตะไม่ได้แม้แต่ฟิลด์เดียว
+        //     และเฉพาะสูตรที่ส่งตรวจแล้วเท่านั้น (แตะ draft ของคนอื่นไม่ได้)
+        (
+          isQcReviewer()
+          && resource.data.status == 'submitted'
+          && touchedKeys().hasOnly(['status'])
+          && request.resource.data.status in ['approved', 'rejected']
+          // แยกหน้าที่: ห้ามอนุมัติสูตรที่ตัวเองเป็นเจ้าของ
+          // กันเคสบัญชีที่เคยเป็น Perfumer แล้วถูกเลื่อนเป็น QC ภายหลัง
+          // ย้อนกลับมาอนุมัติสูตรเก่าของตัวเอง (เจตนาเดียวกับ spec.md หัวข้อ 2)
+          && resource.data.perfumerId != request.auth.uid
+        )
+        ||
+        // (ค) QC บันทึกผลสรุปจาก AI ลง aiSuggestion — spec.md หัวข้อ 5
+        //     จงใจแยกเป็นคนละ rule กับ (ข) และล็อก hasOnly(['aiSuggestion'])
+        //     -> ปุ่ม AI ไม่มีทางแตะ status ได้เลยแม้แต่กรณีเดียว
+        //     ไม่ให้ยุ่งกับสูตรที่ยังเป็น draft (ACL.md: ต้องรอ Perfumer ส่งตรวจก่อน)
+        (
+          isQcReviewer()
+          && resource.data.status != 'draft'
+          && touchedKeys().hasOnly(['aiSuggestion'])
+          && request.resource.data.aiSuggestion is string
+        );
+
+      // ลบ: เจ้าของเท่านั้น และเฉพาะตอนยังเป็น draft (กติกาข้อ 2+3)
+      // QC ลบไม่ได้เลย (ACL.md) — ส่งตรวจไปแล้วเจ้าของก็ลบไม่ได้เช่นกัน
+      allow delete: if isOwner() && resource.data.status == 'draft';
+
+      // ================================================================
+      // formulas/{formulaId}/ingredients/{ingredientId}
+      // กติกาข้อ 7: สืบสิทธิ์จากเอกสารแม่เสมอ ห้ามตัดสินจากตัวเอกสารย่อยเอง
+      // (ถ้าปล่อยให้ตัดสินเองได้ บัญชีอื่นจะอ่านวัตถุดิบของสูตรชาวบ้านได้
+      //  ทั้งที่เปิดตัวสูตรไม่ได้ — ข้อมูลรั่วทางประตูหลัง)
+      // ================================================================
+      match /ingredients/{ingredientId} {
+
+        function ingredientIsValid() {
+          return request.resource.data.keys().hasAll(['materialName', 'percent'])
+                 && request.resource.data.keys().hasOnly(['materialName', 'percent'])
+                 && request.resource.data.materialName is string
+                 && request.resource.data.materialName.size() > 0
+                 && request.resource.data.materialName.size() <= 200
+                 && request.resource.data.percent is number
+                 && request.resource.data.percent >= 0
+                 && request.resource.data.percent <= 100;
+        }
+
+        // เห็นวัตถุดิบได้ก็ต่อเมื่อเห็นสูตรแม่ได้ (QC ทุกสูตร / เจ้าของเฉพาะของตัวเอง)
+        allow read: if canSeeFormula(formulaId);
+
+        // เพิ่มวัตถุดิบ: เจ้าของสูตร + สูตรต้องยังเป็น draft (ดูคอมเมนต์ parentFormulaAfter)
+        allow create: if ownsParentDraftAfter(formulaId) && ingredientIsValid();
+
+        // spec.md หัวข้อ 6 ระบุว่าไม่มี use case แก้วัตถุดิบรายตัวใน MVP นี้ -> ปิดไว้
+        allow update: if false;
+
+        // ลบได้ตอนสูตรยังเป็น draft เท่านั้น (รวมถึงตอนลบสูตรทั้งใบ
+        // ซึ่ง client ต้องไล่ลบเอกสารย่อยเอง เพราะ Firestore ไม่ลบ sub-collection ให้อัตโนมัติ)
+        allow delete: if ownsParentDraft(formulaId);
+      }
+
+      // ================================================================
+      // formulas/{formulaId}/aiLog/{logId}
+      // ประวัติการเรียก AI — เขียนเพิ่มได้อย่างเดียว (append-only) แก้/ลบไม่ได้
+      // เพื่อให้ร่องรอยการใช้ AI ย้อนตรวจได้จริง
+      // ================================================================
+      match /aiLog/{logId} {
+
+        function aiLogIsValid() {
+          return request.resource.data.keys().hasAll(['input', 'output', 'createdAt'])
+                 && request.resource.data.keys().hasOnly(['input', 'output', 'createdAt'])
+                 && request.resource.data.input is string
+                 && request.resource.data.output is string
+                 && request.resource.data.createdAt is timestamp;
+        }
+
+        allow read: if canSeeFormula(formulaId);
+
+        // QC บันทึก log ตอนสั่งสรุปสูตรที่ส่งตรวจแล้ว
+        // หรือเจ้าของบันทึกตอนใช้ AI กับร่างของตัวเอง
+        // สังเกต: ไม่มี branch ไหนแตะ formulas.status ได้ — log เป็นคนละเอกสารกัน
+        allow create: if aiLogIsValid()
+                      && (
+                           (isQcReviewer() && parentFormula(formulaId).status != 'draft')
+                           || ownsParentDraftAfter(formulaId)
+                         );
+
+        allow update, delete: if false;
+      }
+    }
+
+    // ==================================================================
+    // ที่เหลือทั้งหมดปฏิเสธ — เขียนย้ำเจตนาไว้ให้อ่านออก
+    // (Firestore ปฏิเสธ path ที่ไม่มี allow อยู่แล้ว และ allow rule ทำงานแบบ OR
+    //  บล็อกนี้จึงไม่ไปลบสิทธิ์ที่ประกาศไว้ข้างบน)
+    // ==================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

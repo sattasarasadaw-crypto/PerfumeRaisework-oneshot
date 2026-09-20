@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สร้างสูตรใหม่ - Formula Review</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5e6d3 0%, #e8d4c0 100%);
+      min-height: 100vh;
+      color: #5c4a3d;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fffaf5;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(92, 74, 61, 0.1);
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #5c4a3d;
+      margin-bottom: 8px;
+    }
+
+    .breadcrumb {
+      font-size: 13px;
+      color: #a0826d;
+      margin-bottom: 32px;
+    }
+
+    .breadcrumb a {
+      color: #d4a574;
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #5c4a3d;
+      font-size: 14px;
+    }
+
+    label .required {
+      color: #c9365f;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d4c4b0;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fefdfb;
+      color: #5c4a3d;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #c9a876;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #a0826d;
+      margin-top: 4px;
+    }
+
+    .error {
+      color: #c9365f;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    /* Ingredients section */
+    .ingredients-section {
+      margin-bottom: 24px;
+    }
+
+    .ingredients-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .ingredients-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #5c4a3d;
+    }
+
+    .btn-add-ingredient {
+      background: #d4a574;
+      color: #fffaf5;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn-add-ingredient:hover {
+      background: #c9965f;
+    }
+
+    .ingredients-list {
+      background: #f5e6d3;
+      padding: 12px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .ingredient-row {
+      display: grid;
+      grid-template-columns: 1fr 80px 40px;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: end;
+    }
+
+    .ingredient-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .ingredient-row input {
+      padding: 8px;
+      font-size: 13px;
+    }
+
+    .ingredient-row input[type="number"] {
+      text-align: center;
+    }
+
+    .btn-remove {
+      background: #c9365f;
+      color: #fffaf5;
+      border: none;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn-remove:hover {
+      background: #b01d4f;
+    }
+
+    .empty-ingredients {
+      padding: 20px;
+      text-align: center;
+      color: #a0826d;
+      font-size: 13px;
+    }
+
+    /* AI IFRA button section */
+    .ai-section {
+      background: #f0e8dd;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 24px;
+      border-left: 4px solid #d4a574;
+    }
+
+    .ai-button-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .btn-ai {
+      background: #8b7355;
+      color: #fffaf5;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn-ai:hover {
+      background: #7a6349;
+    }
+
+    .btn-ai:disabled {
+      background: #a0826d;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    #aiIfraBox {
+      background: #fffaf5;
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #5c4a3d;
+      min-height: 40px;
+      display: none;
+    }
+
+    #aiIfraBox.visible {
+      display: block;
+    }
+
+    #aiIfraBox.loading {
+      color: #a0826d;
+      font-style: italic;
+    }
+
+    #aiIfraBox.error {
+      color: #c9365f;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .btn-primary, .btn-secondary {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: #d4a574;
+      color: #fffaf5;
+    }
+
+    .btn-primary:hover {
+      background: #c9965f;
+    }
+
+    .btn-primary:disabled {
+      background: #c9a876;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #a0826d;
+      border: 1px solid #d4c4b0;
+    }
+
+    .btn-secondary:hover {
+      background: #f5e6d3;
+    }
+
+    .loading-indicator {
+      display: none;
+      text-align: center;
+      color: #a0826d;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="index.html">← กลับไปยังรายการสูตร</a>
+    </div>
+
+    <h1>สร้างสูตรใหม่</h1>
+
+    <form id="formulaForm">
+      <!-- Basic Info -->
+      <div class="form-group">
+        <label for="name">ชื่อสูตร <span class="required">*</span></label>
+        <input type="text" id="name" name="name" required placeholder="เช่น Rosa Elegante">
+        <div class="error" id="nameError"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="fragranceType">ประเภทน้ำหอม <span class="required">*</span></label>
+        <select id="fragranceType" name="fragranceType" required>
+          <option value="">-- เลือกประเภท --</option>
+        </select>
+        <div class="help-text" id="concentrationRange"></div>
+        <div class="error" id="fragranceTypeError"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="brief">โจทย์กลิ่น (Brief) <span class="required">*</span></label>
+        <textarea id="brief" name="brief" required placeholder="อธิบายความต้องการของลูกค้า เช่น ต้องการกลิ่นวุ้นใหญ่ ผสมดอกไม้..."></textarea>
+        <div class="help-text">ข้อความนี้จะใช้สำหรับให้ AI ตรวจสอบ IFRA</div>
+        <div class="error" id="briefError"></div>
+      </div>
+
+      <!-- Ingredients Section -->
+      <div class="ingredients-section">
+        <div class="ingredients-header">
+          <label>วัตถุดิบ <span class="required">*</span></label>
+          <button type="button" class="btn-add-ingredient" id="addIngredientBtn">+ เพิ่มแถว</button>
+        </div>
+        <div class="ingredients-list" id="ingredientsList">
+          <div class="empty-ingredients">ยังไม่มีวัตถุดิบ คลิก "เพิ่มแถว" เพื่อเริ่ม</div>
+        </div>
+        <div class="error" id="ingredientsError"></div>
+      </div>
+
+      <!-- AI IFRA Section -->
+      <div class="ai-section">
+        <div class="ai-button-group">
+          <button type="button" class="btn-ai" id="aiIfraBtn">🤖 ให้ AI ตรวจ IFRA เบื้องต้น</button>
+        </div>
+        <!-- ปุ่ม AI: formula-ai-feature จะมาต่อ logic ตรงนี้ -->
+        <div id="aiIfraBox"></div>
+        <div class="loading-indicator" id="aiIfraLoading">กำลังประมวลผล...</div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button type="button" class="btn-secondary" id="cancelBtn">ยกเลิก</button>
+        <button type="submit" class="btn-primary" id="submitBtn">บันทึกสูตร</button>
+      </div>
+
+      <div class="loading-indicator" id="submitLoading">กำลังบันทึก...</div>
+    </form>
+  </div>
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { collection, getDocs, doc, setDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    let currentUser = null;
+    let fragranceTypes = {};
+    let ingredients = [];
+
+    // Auth state listener
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+      currentUser = user;
+      loadFragranceTypes();
+    });
+
+    // Helper function to escape HTML
+    function escHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Load fragrance types from Firestore
+    async function loadFragranceTypes() {
+      try {
+        const snapshot = await getDocs(collection(db, "fragranceTypes"));
+        snapshot.forEach((doc) => {
+          fragranceTypes[doc.id] = doc.data();
+        });
+
+        // Populate select
+        const select = document.getElementById("fragranceType");
+        Object.entries(fragranceTypes).forEach(([id, data]) => {
+          const option = document.createElement("option");
+          option.value = id;
+          option.textContent = escHtml(data.name);
+          select.appendChild(option);
+        });
+
+        // Show concentration range on change
+        select.addEventListener("change", () => {
+          const rangeEl = document.getElementById("concentrationRange");
+          if (select.value && fragranceTypes[select.value]) {
+            rangeEl.textContent = "ช่วงความเข้มข้น: " + escHtml(fragranceTypes[select.value].concentrationRange);
+          } else {
+            rangeEl.textContent = "";
+          }
+        });
+      } catch (error) {
+        alert("ไม่สามารถโหลดประเภทน้ำหอม: " + error.message);
+      }
+    }
+
+    // Ingredients management
+    document.getElementById("addIngredientBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      addIngredientRow();
+    });
+
+    function addIngredientRow() {
+      const list = document.getElementById("ingredientsList");
+
+      // Remove empty state if needed
+      const empty = list.querySelector(".empty-ingredients");
+      if (empty) empty.remove();
+
+      const rowIndex = ingredients.length;
+      ingredients.push({ materialName: "", percent: "" });
+
+      const html = `
+        <div class="ingredient-row" data-index="${rowIndex}">
+          <input type="text" placeholder="ชื่อวัตถุดิบ" class="material-name" data-index="${rowIndex}">
+          <input type="number" placeholder="%" min="0" max="100" step="0.1" class="material-percent" data-index="${rowIndex}">
+          <button type="button" class="btn-remove" data-index="${rowIndex}">ลบ</button>
+        </div>
+      `;
+
+      list.innerHTML += html;
+
+      // Add listeners to new row
+      const row = list.querySelector(`[data-index="${rowIndex}"]`);
+      row.querySelector(".material-name").addEventListener("input", (e) => {
+        ingredients[rowIndex].materialName = e.target.value;
+      });
+      row.querySelector(".material-percent").addEventListener("input", (e) => {
+        ingredients[rowIndex].percent = parseFloat(e.target.value) || "";
+      });
+      row.querySelector(".btn-remove").addEventListener("click", (e) => {
+        e.preventDefault();
+        removeIngredientRow(rowIndex);
+      });
+    }
+
+    function removeIngredientRow(index) {
+      const row = document.querySelector(`[data-index="${index}"]`);
+      if (row) row.remove();
+      ingredients[index] = null;
+
+      const list = document.getElementById("ingredientsList");
+      if (list.children.length === 0) {
+        list.innerHTML = '<div class="empty-ingredients">ยังไม่มีวัตถุดิบ คลิก "เพิ่มแถว" เพื่อเริ่ม</div>';
+      }
+    }
+
+    // ปุ่ม AI ตรวจ IFRA เบื้องต้น (spec.md หัวข้อ 5)
+    // เก็บคำตอบไว้ในตัวแปรนี้ เพื่อบันทึกลงฟิลด์ aiIfraNote ตอนกดบันทึกสูตร
+    let aiIfraNoteText = "";
+
+    document.getElementById("aiIfraBtn").addEventListener("click", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("aiIfraBtn");
+      const box = document.getElementById("aiIfraBox");
+      const originalLabel = btn.textContent;
+
+      const brief = document.getElementById("brief").value.trim();
+      const rows = ingredients.filter((ing) => ing && ing.materialName);
+
+      if (!brief || rows.length === 0) {
+        box.className = "error visible";
+        box.textContent = "⚠️ กรอกโจทย์กลิ่น (brief) และวัตถุดิบอย่างน้อย 1 รายการก่อน แล้วค่อยกดให้ AI ตรวจ";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "กำลังให้ AI ตรวจ...";
+      box.className = "loading visible";
+      box.textContent = "กำลังให้ AI ตรวจ...";
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        // dynamic import เท่านั้น — ถ้าไฟล์คีย์หาย ต้องพังแค่ปุ่มนี้ ไม่ใช่ทั้งหน้า
+        const { getOpenRouterKey, forgetOpenRouterKey } = await import("./ai-key.js");
+        const apiKey = await getOpenRouterKey();
+        if (!apiKey) throw new Error("ยังไม่ได้ใส่คีย์ AI — กดปุ่มอีกครั้งแล้ววางคีย์เพื่อใช้ฟีเจอร์นี้");
+
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              { role: "system", content: "คุณช่วยนักปรุงน้ำหอมตรวจสอบเบื้องต้นว่ารายการวัตถุดิบที่ให้มามีสารที่มักถูกจำกัดปริมาณตาม IFRA หรือมีความเสี่ยงที่ควรระวังหรือไม่ ตอบเป็นภาษาไทยสั้น ๆ 1-3 ประโยค เป็นข้อสังเกตเชิงคุณภาพเท่านั้น ห้ามอ้างเปอร์เซ็นต์ขีดจำกัดที่แน่นอนราวกับเป็นผลตรวจทางการ และห้ามฟันธงว่าผ่านหรือไม่ผ่าน ให้บอกว่าควรให้ผู้เชี่ยวชาญตรวจสอบต่อเสมอ" },
+              { role: "user", content: "โจทย์ (brief): " + brief + "\nรายการวัตถุดิบ: " + JSON.stringify(rows) },
+            ],
+          }),
+        });
+
+        const data = await res.json();
+        // คีย์ผิด/หมดอายุ — ลืมคีย์ที่เก็บไว้ในแท็บนี้ เพื่อให้ถามใหม่ในครั้งถัดไป
+        if (res.status === 401 || res.status === 403) forgetOpenRouterKey();
+        if (!res.ok) throw new Error((data.error && data.error.message) || "เรียก API ไม่สำเร็จ");
+
+        const note = ((data.choices && data.choices[0] && data.choices[0].message.content) || "").trim();
+        if (!note) throw new Error("AI ไม่ได้ตอบข้อความกลับมา");
+
+        aiIfraNoteText = note;
+        box.className = "visible";
+        box.innerHTML = "🤖 <strong>ข้อสังเกตเบื้องต้นจาก AI — ไม่ใช่ผลตรวจ IFRA อย่างเป็นทางการ โปรดตรวจสอบก่อนตัดสินใจ:</strong><br>" + escHtml(note);
+      } catch (err) {
+        box.className = "error visible";
+        box.textContent = err.name === "AbortError"
+          ? "⌛ รอ AI นานเกิน 15 วินาที — ยังบันทึกสูตรต่อได้ตามปกติ"
+          : "❌ ให้ AI ตรวจไม่สำเร็จ: " + err.message + " — ยังบันทึกสูตรต่อได้ตามปกติ";
+      } finally {
+        clearTimeout(timer);
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+    });
+
+    // Cancel button
+    document.getElementById("cancelBtn").addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+
+    // Form submission
+    document.getElementById("formulaForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      // Clear errors
+      document.querySelectorAll(".error").forEach(el => el.textContent = "");
+
+      const name = document.getElementById("name").value.trim();
+      const fragranceTypeId = document.getElementById("fragranceType").value;
+      const brief = document.getElementById("brief").value.trim();
+
+      // Validate
+      let hasError = false;
+
+      if (!name) {
+        document.getElementById("nameError").textContent = "โปรดกรอกชื่อสูตร";
+        hasError = true;
+      }
+
+      if (!fragranceTypeId) {
+        document.getElementById("fragranceTypeError").textContent = "โปรดเลือกประเภทน้ำหอม";
+        hasError = true;
+      }
+
+      if (!brief) {
+        document.getElementById("briefError").textContent = "โปรดกรอกโจทย์กลิ่น";
+        hasError = true;
+      }
+
+      const validIngredients = ingredients.filter(ing => ing && ing.materialName && ing.percent);
+      if (validIngredients.length === 0) {
+        document.getElementById("ingredientsError").textContent = "โปรดเพิ่มวัตถุดิบอย่างน้อยหนึ่งแถว";
+        hasError = true;
+      }
+
+      if (hasError) return;
+
+      document.getElementById("submitBtn").disabled = true;
+      document.getElementById("submitLoading").style.display = "block";
+
+      try {
+        const fragranceType = fragranceTypes[fragranceTypeId];
+        const formulaRef = doc(collection(db, "formulas"));
+
+        const batch = writeBatch(db);
+
+        // Create main formula document
+        batch.set(formulaRef, {
+          name: name,
+          perfumerId: currentUser.uid,
+          perfumerName: currentUser.displayName || currentUser.email,
+          fragranceTypeId: fragranceTypeId,
+          fragranceTypeName: fragranceType.name,
+          brief: brief,
+          status: "draft",
+          aiIfraNote: aiIfraNoteText,
+          aiSuggestion: "",
+          createdAt: serverTimestamp()
+        });
+
+        // Add ingredients as sub-collection
+        validIngredients.forEach((ing) => {
+          const ingRef = doc(collection(formulaRef, "ingredients"));
+          batch.set(ingRef, {
+            materialName: ing.materialName,
+            percent: ing.percent
+          });
+        });
+
+        await batch.commit();
+
+        // Redirect to detail page
+        window.location.href = `formula-detail.html?id=${encodeURIComponent(formulaRef.id)}`;
+      } catch (error) {
+        alert("เกิดข้อผิดพลาด: " + error.message);
+        document.getElementById("submitBtn").disabled = false;
+        document.getElementById("submitLoading").style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>

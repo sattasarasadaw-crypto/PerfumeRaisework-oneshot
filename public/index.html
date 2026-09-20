@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รายการสูตร - Formula Review</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5e6d3 0%, #e8d4c0 100%);
+      min-height: 100vh;
+      color: #5c4a3d;
+    }
+
+    header {
+      background: #fffaf5;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e8d4c0;
+    }
+
+    header h1 {
+      font-size: 28px;
+      color: #5c4a3d;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .user-info {
+      text-align: right;
+      font-size: 14px;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #5c4a3d;
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: #a0826d;
+    }
+
+    .btn-primary, .btn-secondary {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: #d4a574;
+      color: #fffaf5;
+    }
+
+    .btn-primary:hover {
+      background: #c9965f;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #a0826d;
+      border: 1px solid #d4c4b0;
+    }
+
+    .btn-secondary:hover {
+      background: #f5e6d3;
+    }
+
+    .btn-hidden {
+      display: none;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #5c4a3d;
+      margin-bottom: 24px;
+    }
+
+    .table-wrapper {
+      background: #fffaf5;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(92, 74, 61, 0.05);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #f5e6d3;
+    }
+
+    th {
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      color: #5c4a3d;
+      font-size: 13px;
+      border-bottom: 1px solid #e8d4c0;
+    }
+
+    td {
+      padding: 16px;
+      border-bottom: 1px solid #f0e8dd;
+      font-size: 14px;
+    }
+
+    tbody tr {
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    tbody tr:hover {
+      background: #fef8f3;
+    }
+
+    .name-col {
+      font-weight: 600;
+      color: #5c4a3d;
+    }
+
+    .type-col {
+      color: #a0826d;
+      font-size: 13px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      min-width: 90px;
+    }
+
+    .badge-draft {
+      background: #ffe8d1;
+      color: #8b6a4f;
+    }
+
+    .badge-submitted {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .badge-approved {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-rejected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #a0826d;
+    }
+
+    .empty-state p {
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #a0826d;
+      font-size: 14px;
+    }
+
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      border-left: 4px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>รายการสูตร</h1>
+    <div class="header-right">
+      <div class="user-info">
+        <div class="user-name" id="userName">—</div>
+        <div class="user-role" id="userRole">—</div>
+      </div>
+      <button class="btn-primary btn-hidden" id="newFormulaBtn">+ สร้างสูตรใหม่</button>
+      <button class="btn-secondary" id="logoutBtn">ออกจากระบบ</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+    <div id="contentArea">
+      <div class="loading">กำลังโหลด...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    let currentUser = null;
+    let userRole = null;
+
+    // Helper function to escape HTML
+    function escHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Auth state listener
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      currentUser = user;
+      document.getElementById("userName").textContent = user.displayName || user.email;
+
+      // Get user role from Firestore
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          userRole = userDoc.data().role;
+          const roleDisplay = userRole === "perfumer" ? "นักปรุงน้ำหอม" : "ผู้ตรวจสอบ QC";
+          document.getElementById("userRole").textContent = roleDisplay;
+
+          // Show "create formula" button only for perfumer
+          if (userRole === "perfumer") {
+            document.getElementById("newFormulaBtn").classList.remove("btn-hidden");
+          }
+        }
+      } catch (error) {
+        showError("ไม่สามารถโหลดข้อมูลผู้ใช้: " + error.message);
+      }
+
+      // Load formulas
+      await loadFormulas();
+    });
+
+    // Logout button
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "login.html";
+    });
+
+    // Create formula button
+    document.getElementById("newFormulaBtn").addEventListener("click", () => {
+      window.location.href = "formula-new.html";
+    });
+
+    // Load formulas
+    async function loadFormulas() {
+      const contentArea = document.getElementById("contentArea");
+
+      try {
+        let q;
+        if (userRole === "perfumer") {
+          // Perfumer sees only their own formulas
+          q = query(collection(db, "formulas"), where("perfumerId", "==", currentUser.uid));
+        } else {
+          // QC sees all formulas (no filter)
+          q = query(collection(db, "formulas"));
+        }
+
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          contentArea.innerHTML = `
+            <div class="empty-state">
+              <p>ยังไม่มีสูตรใด ๆ</p>
+              ${userRole === "perfumer" ? '<a href="formula-new.html" class="btn-primary">สร้างสูตรแรกของคุณ</a>' : ''}
+            </div>
+          `;
+          return;
+        }
+
+        // Build table
+        let html = `
+          <div class="section-title">สูตรทั้งหมด (${snapshot.size})</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ชื่อสูตร</th>
+                  <th>ประเภท</th>
+                  <th>ผู้สร้าง</th>
+                  <th>สถานะ</th>
+                  <th>วันที่สร้าง</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        snapshot.forEach((doc) => {
+          const formula = doc.data();
+          const id = doc.id;
+          const statusBadge = getStatusBadge(formula.status);
+          const createdDate = formula.createdAt
+            ? new Date(formula.createdAt.toDate()).toLocaleDateString("th-TH")
+            : "—";
+
+          html += `
+            <tr data-id="${escHtml(id)}">
+              <td class="name-col">${escHtml(formula.name)}</td>
+              <td class="type-col">${escHtml(formula.fragranceTypeName || "—")}</td>
+              <td>${escHtml(formula.perfumerName || "—")}</td>
+              <td>${statusBadge}</td>
+              <td>${createdDate}</td>
+            </tr>
+          `;
+        });
+
+        html += `
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        contentArea.innerHTML = html;
+
+        // Add click handlers to rows
+        document.querySelectorAll("tbody tr").forEach(row => {
+          row.addEventListener("click", () => {
+            const formulaId = row.dataset.id;
+            window.location.href = `formula-detail.html?id=${encodeURIComponent(formulaId)}`;
+          });
+        });
+
+      } catch (error) {
+        showError("ไม่สามารถโหลดรายการสูตร: " + error.message);
+      }
+    }
+
+    function getStatusBadge(status) {
+      const statusMap = {
+        "draft": { text: "ร่าง", class: "badge-draft" },
+        "submitted": { text: "ส่งตรวจแล้ว", class: "badge-submitted" },
+        "approved": { text: "อนุมัติแล้ว", class: "badge-approved" },
+        "rejected": { text: "ตีกลับ", class: "badge-rejected" }
+      };
+
+      const s = statusMap[status] || { text: status, class: "badge-draft" };
+      return `<span class="status-badge ${s.class}">${s.text}</span>`;
+    }
+
+    function showError(message) {
+      const errorEl = document.getElementById("errorMessage");
+      errorEl.textContent = message;
+      errorEl.style.display = "block";
+      document.getElementById("contentArea").innerHTML = "";
+    }
+  </script>
+</body>
+</html>

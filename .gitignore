@@ -1,0 +1,54 @@
+# ============================================================
+# repo นี้ถูก push ขึ้น GitHub — กันของที่ห้ามหลุดไว้ตั้งแต่ก่อนสร้างไฟล์
+# ============================================================
+
+# 🔴 คีย์ AI (OpenRouter) — ห้ามขึ้น GitHub เด็ดขาด
+# ⚠️ ไม่รวม config.local.example.js ที่เป็นแม่แบบไม่มีคีย์จริง (ชื่อไฟล์ต่างกัน git จึงไม่ match)
+# ⚠️ กันไม่ให้ขึ้น GitHub อย่างเดียวไม่พอ — ต้องกันไม่ให้ขึ้นเว็บใน firebase.json ด้วย
+config.local.js
+config.local.json
+
+# บัญชีทดสอบของชุดเทสต์ Playwright
+# ⚠️ ไม่รวม test-accounts.example.json ที่เป็นแม่แบบไม่มีรหัสผ่านจริง
+test-accounts.local.json
+
+# ผลการรันเทสต์ (สร้างใหม่ได้ด้วย npm test — รายงานสรุปอยู่ที่ test-results.md)
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# ความลับทั่วไป
+*.env
+*secret*
+*credential*
+
+# เอกสารเชิงธุรกิจ / สัญญา / ทรัพย์สินทางปัญญา — ห้ามเข้า repo นี้เด็ดขาด
+*MOU*
+*MoU*
+*CONTRACT*
+*GOVERNANCE*
+*BOUNDARY_RULES*
+*ADVISOR*
+*EQUITY*
+
+# ฐานข้อมูลสารเคมีดิบ / ราคาวัตถุดิบ
+Database/
+PriceRM/
+*.csv
+*.xls
+*.xlsx
+*.zip
+
+# dependencies
+node_modules/
+
+# Firebase CLI local deploy cache
+.firebase/
+
+# ระบบ
+.DS_Store
+Thumbs.db
+desktop.ini
+__pycache__/
+*.pyc

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เข้าสู่ระบบ - Formula Review</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5e6d3 0%, #e8d4c0 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #5c4a3d;
+    }
+
+    .container {
+      background: #fffaf5;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(92, 74, 61, 0.1);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      text-align: center;
+      color: #5c4a3d;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: #a0826d;
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #5c4a3d;
+      font-size: 14px;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d4c4b0;
+      border-radius: 4px;
+      font-size: 14px;
+      background: #fefdfb;
+      color: #5c4a3d;
+      transition: border-color 0.2s;
+    }
+
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+      outline: none;
+      border-color: #c9a876;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #d4a574;
+      color: #fffaf5;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #c9965f;
+    }
+
+    button:active {
+      background: #bf8a4f;
+    }
+
+    button:disabled {
+      background: #c9a876;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .signup-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .signup-link a {
+      color: #d4a574;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .signup-link a:hover {
+      text-decoration: underline;
+    }
+
+    .error {
+      color: #c9365f;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .loading {
+      display: none;
+      color: #a0826d;
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>เข้าสู่ระบบ</h1>
+    <p class="subtitle">Formula Review System</p>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">อีเมล</label>
+        <input type="email" id="email" name="email" required>
+        <div class="error" id="emailError"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">รหัสผ่าน</label>
+        <input type="password" id="password" name="password" required>
+        <div class="error" id="passwordError"></div>
+      </div>
+
+      <button type="submit" id="submitBtn">เข้าสู่ระบบ</button>
+      <div class="loading" id="loading">กำลังเข้าสู่ระบบ...</div>
+    </form>
+
+    <div class="signup-link">
+      ยังไม่มีบัญชี? <a href="signup.html">สมัครสมาชิก</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth } from "./firebase-config.js";
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    const form = document.getElementById("loginForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const loading = document.getElementById("loading");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      // Clear previous errors
+      document.querySelectorAll(".error").forEach(el => el.textContent = "");
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      submitBtn.disabled = true;
+      loading.style.display = "block";
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "index.html";
+      } catch (error) {
+        loading.style.display = "none";
+        submitBtn.disabled = false;
+
+        if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+          document.getElementById("emailError").textContent = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+        } else if (error.code === "auth/invalid-email") {
+          document.getElementById("emailError").textContent = "อีเมลไม่ถูกต้อง";
+        } else if (error.code === "auth/too-many-requests") {
+          document.getElementById("emailError").textContent = "พยายามเข้าสู่ระบบหลายครั้งเกินไป ลองอีกครั้งภายหลัง";
+        } else {
+          alert("เกิดข้อผิดพลาด: " + error.message);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
